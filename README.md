@@ -5,7 +5,7 @@ Bot Python en français, avec commandes slash et stockage SQLite local. Python 3
 ## Installation
 
 1. Crée une application nommée **Lyra Bot** sur https://discord.com/developers/applications puis ouvre **Bot** pour obtenir son token. Ne partage jamais ce token dans un message ou une capture.
-2. Dans **OAuth2 → URL Generator**, sélectionne `bot` et `applications.commands`. Accorde : Voir les salons, Envoyer des messages, Envoyer des messages dans les fils, Intégrer des liens, Voir les anciens messages, Gérer les messages, Expulser des membres, Bannir des membres et Exclure temporairement des membres. La permission Administrateur n’est pas nécessaire.
+2. Dans **OAuth2 → URL Generator**, sélectionne `bot` et `applications.commands`. Accorde : Voir les salons, Envoyer des messages, Envoyer des messages dans les fils, Intégrer des liens, Voir les anciens messages, Gérer les messages, Expulser des membres, Bannir des membres, Exclure temporairement des membres, ainsi que **Se connecter** et **Parler** (pour la musique). La permission Administrateur n’est pas nécessaire.
 3. Ouvre le lien généré pour inviter le bot. Dans les paramètres du serveur, place son rôle au-dessus des membres à modérer. Le rôle du modérateur doit lui aussi être au-dessus de sa cible, sauf pour le propriétaire.
 4. Installe Python, puis ouvre un terminal dans le dossier LyraBot décompressé.
 
@@ -31,7 +31,16 @@ cp .env.example .env
 
 Dans `.env`, remplace la valeur `DISCORD_TOKEN` par ton token. Pour un seul serveur, renseigne aussi `GUILD_ID` : active le mode développeur dans les paramètres Discord, puis clic droit sur le serveur → Copier l’identifiant. Cela permet de synchroniser les commandes directement sur ton serveur. Sans cet identifiant, les commandes sont globales et leur apparition peut prendre du temps.
 
-Aucun intent privilégié n’est nécessaire : l’antispam compte les messages sans lire leur contenu. Laisse donc les intents privilégiés désactivés.
+Le bot utilise les logs détaillés, ce qui nécessite deux intents privilégiés : dans le portail développeur, section **Bot**, active **Server Members Intent** et **Message Content Intent**, sinon le bot refusera de se connecter.
+
+La musique nécessite **ffmpeg** installé sur la machine qui héberge le bot (binaire système, pas un paquet Python) :
+
+```sh
+# Debian/Ubuntu
+sudo apt install -y ffmpeg
+```
+
+Sous Windows, télécharge ffmpeg et ajoute son dossier `bin` au PATH.
 
 ## Commandes
 
@@ -47,7 +56,40 @@ Aucun intent privilégié n’est nécessaire : l’antispam compte les messages
 | `/warnings membre` | Voir les 5 derniers avertissements | Exclure temporairement |
 | `/delwarn numero` | Retirer un avertissement | Exclure temporairement |
 
-Les réponses aux commandes sont privées pour le modérateur. Les actions du bot sont envoyées dans le journal configuré ; les actions manuelles des autres modérateurs ne sont pas reprises. Réserve l’accès au journal à ton équipe. Si le journal devient inaccessible, l’action reste effectuée et une alerte apparaît dans la console.
+### Jeux
+
+| Commande | Fonction |
+| --- | --- |
+| `/pfc choix` | Pierre-papier-ciseaux contre le bot |
+| `/pile pari` | Pile ou face, pari facultatif |
+| `/deviner nombre` | Deviner un nombre secret entre 1 et 20 |
+| `/quiz` | Question de culture générale, premier clic correct gagne (30 s) |
+
+### Collection de cartes
+
+| Commande | Fonction |
+| --- | --- |
+| `/quotidien` | Récupérer 20 à 40 pièces, une fois par 24 h |
+| `/solde` | Voir son solde de pièces |
+| `/ouvrir` | Ouvrir un paquet (40 pièces) et tirer une carte aléatoire selon sa rareté |
+| `/cartes [membre]` | Voir sa collection ou celle d’un autre membre |
+| `/echanger membre ma_carte sa_carte` | Proposer un échange 1 contre 1 ; l’autre membre accepte ou refuse via des boutons (5 min) |
+
+Le catalogue de cartes (16 cartes, 4 raretés) est défini dans `cards.py` — modifiable librement. Les identifiants de carte (`braise`, `lune`, `phenix`, etc.) s’obtiennent via `/cartes`.
+
+### Musique
+
+| Commande | Fonction |
+| --- | --- |
+| `/jouer recherche` | Rechercher sur YouTube ou coller un lien ; rejoint ton salon vocal |
+| `/pause` / `/reprendre` | Mettre en pause / reprendre |
+| `/suivant` | Passer à la musique suivante de la file |
+| `/stop` | Vider la file et quitter le salon vocal |
+| `/file` | Voir la musique en cours et la file d’attente |
+
+Le bot ne peut jouer que dans un seul salon vocal à la fois par serveur. La récupération dépend de YouTube via `yt-dlp` : une musique introuvable ou un échec d’extraction peuvent survenir après une mise à jour de YouTube, il faudra alors mettre à jour `yt-dlp` (`pip install -U yt-dlp`).
+
+Les réponses aux commandes de modération sont privées pour le modérateur. Les actions du bot sont envoyées dans le journal configuré ; les actions manuelles des autres modérateurs ne sont pas reprises. Réserve l’accès au journal à ton équipe. Si le journal devient inaccessible, l’action reste effectuée et une alerte apparaît dans la console.
 
 L’antispam est désactivé au départ. Une fois activé, 6 messages en moins de 8 secondes, cumulés sur le serveur, entraînent un timeout de 1 minute. Les administrateurs et les membres avec Gérer les messages ou Exclure temporairement sont exemptés. Il ne supprime pas les messages et ne filtre ni les mots ni les liens. Ses compteurs sont remis à zéro au redémarrage.
 

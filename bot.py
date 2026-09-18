@@ -9,7 +9,10 @@ import discord
 from discord import app_commands
 from dotenv import load_dotenv
 
+import cards
 import event_logs
+import games
+import music
 from core import SpamDetector, target_allowed
 
 ROOT = Path(__file__).resolve().parent
@@ -72,6 +75,9 @@ class LyraBot(discord.Client):
 
 bot = LyraBot()
 event_logs.register(bot)
+games.register(bot)
+cards.register(bot, db)
+music.register(bot)
 
 
 async def reply(interaction, text):
