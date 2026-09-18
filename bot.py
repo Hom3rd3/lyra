@@ -9,15 +9,15 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+ROOT = Path(__file__).resolve().parent
+load_dotenv(ROOT / '.env')
+
 import cards
 import event_logs
 import fc27
 import games
 import music
 from core import SpamDetector, target_allowed
-
-ROOT = Path(__file__).resolve().parent
-load_dotenv(ROOT / '.env')
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('lyra_bot')
 db = sqlite3.connect(ROOT / 'guardian.sqlite3')

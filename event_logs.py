@@ -5,7 +5,7 @@ import discord
 
 log = logging.getLogger('lyra_bot.event_logs')
 
-LOG_CHANNEL_ID = int(os.getenv('EVENT_LOG_CHANNEL_ID', '1549518582843703296').strip())
+LOG_CHANNEL_ID = int(os.getenv('EVENT_LOG_CHANNEL_ID', '1109409973714296895').strip())
 
 _cache = {}
 
