@@ -98,7 +98,7 @@ async def get_sbc(loop, limit=5):
 
 
 def register(bot):
-    @bot.hybrid_command(name='fc27', description='Voir les dernières actus officielles d’EA SPORTS FC 27.')
+    @bot.command(name='fc27', help='Voir les dernières actus officielles d’EA SPORTS FC 27.')
     async def fc27(ctx: commands.Context):
         await ctx.defer()
         try:
@@ -117,7 +117,7 @@ def register(bot):
         embed.set_footer(text='Source : ea.com (officiel)')
         await ctx.send(embed=embed)
 
-    @bot.hybrid_command(name='sbc', description='Voir les SBC (Squad Building Challenges) actifs, avec image.')
+    @bot.command(name='sbc', help='Voir les SBC (Squad Building Challenges) actifs, avec image.')
     async def sbc(ctx: commands.Context):
         await ctx.defer()
         try:

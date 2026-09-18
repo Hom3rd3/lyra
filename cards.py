@@ -126,7 +126,7 @@ class TradeView(discord.ui.View):
 def register(bot, db):
     setup_db(db)
 
-    @bot.hybrid_command(name='quotidien', description='Récupérer tes pièces quotidiennes.')
+    @bot.command(name='quotidien', help='Récupérer tes pièces quotidiennes.')
     @commands.guild_only()
     async def quotidien(ctx: commands.Context):
         now = time.time()
@@ -140,12 +140,12 @@ def register(bot, db):
         add_coins(db, ctx.guild.id, ctx.author.id, gain, last_daily=now)
         await ctx.send(f'💰 +{gain} pièces ! Solde : {get_balance(db, ctx.guild.id, ctx.author.id)}.')
 
-    @bot.hybrid_command(name='solde', description='Voir ton solde de pièces.')
+    @bot.command(name='solde', help='Voir ton solde de pièces.')
     @commands.guild_only()
     async def solde(ctx: commands.Context):
         await ctx.send(f'💰 Solde de {ctx.author.display_name} : {get_balance(db, ctx.guild.id, ctx.author.id)} pièces.')
 
-    @bot.hybrid_command(name='ouvrir', description=f'Ouvrir un paquet de cartes ({PACK_COST} pièces).')
+    @bot.command(name='ouvrir', help=f'Ouvrir un paquet de cartes ({PACK_COST} pièces).')
     @commands.guild_only()
     async def ouvrir(ctx: commands.Context):
         solde_actuel = get_balance(db, ctx.guild.id, ctx.author.id)
@@ -164,7 +164,7 @@ def register(bot, db):
         embed.set_footer(text=f'Tiré par {ctx.author.display_name}')
         await ctx.send(embed=embed)
 
-    @bot.hybrid_command(name='cartes', description='Voir une collection de cartes.')
+    @bot.command(name='cartes', help='Voir une collection de cartes.')
     @commands.guild_only()
     async def cartes(ctx: commands.Context, membre: discord.Member = None):
         cible = membre or ctx.author
@@ -179,7 +179,7 @@ def register(bot, db):
         embed = discord.Embed(title=f'Collection de {cible.display_name}', description='\n'.join(lignes)[:4000], color=0x5865F2)
         await ctx.send(embed=embed)
 
-    @bot.hybrid_command(name='echanger', description='Proposer un échange de cartes avec un membre.')
+    @bot.command(name='echanger', help='Proposer un échange de cartes avec un membre.')
     @commands.guild_only()
     async def echanger(ctx: commands.Context, membre: discord.Member, ma_carte: str, sa_carte: str):
         if membre.id == ctx.author.id or membre.bot:

@@ -78,7 +78,7 @@ def register(bot):
             log.warning('Lecture impossible pour %s', guild_id, exc_info=True)
             await play_next(guild_id)
 
-    @bot.hybrid_command(name='jouer', description='Jouer une musique depuis YouTube (recherche ou lien).')
+    @bot.command(name='jouer', help='Jouer une musique depuis YouTube (recherche ou lien).')
     @commands.guild_only()
     async def jouer(ctx: commands.Context, *, recherche: str):
         if not isinstance(ctx.author, discord.Member) or not ctx.author.voice or not ctx.author.voice.channel:
@@ -110,7 +110,7 @@ def register(bot):
         else:
             await ctx.send(f'➕ Ajouté à la file : **{track.title}** (position {len(player.queue)})')
 
-    @bot.hybrid_command(name='pause', description='Mettre la lecture en pause.')
+    @bot.command(name='pause', help='Mettre la lecture en pause.')
     @commands.guild_only()
     async def pause(ctx: commands.Context):
         player = players.get(ctx.guild.id)
@@ -120,7 +120,7 @@ def register(bot):
         player.voice.pause()
         await ctx.send('⏸️ Pause.')
 
-    @bot.hybrid_command(name='reprendre', description='Reprendre la lecture après une pause.')
+    @bot.command(name='reprendre', help='Reprendre la lecture après une pause.')
     @commands.guild_only()
     async def reprendre(ctx: commands.Context):
         player = players.get(ctx.guild.id)
@@ -130,7 +130,7 @@ def register(bot):
         player.voice.resume()
         await ctx.send('▶️ Reprise.')
 
-    @bot.hybrid_command(name='suivant', description='Passer à la musique suivante de la file.')
+    @bot.command(name='suivant', help='Passer à la musique suivante de la file.')
     @commands.guild_only()
     async def suivant(ctx: commands.Context):
         player = players.get(ctx.guild.id)
@@ -140,7 +140,7 @@ def register(bot):
         player.voice.stop()
         await ctx.send('⏭️ Musique suivante.')
 
-    @bot.hybrid_command(name='stop', description='Arrêter la lecture, vider la file et quitter le vocal.')
+    @bot.command(name='stop', help='Arrêter la lecture, vider la file et quitter le vocal.')
     @commands.guild_only()
     async def stop(ctx: commands.Context):
         player = players.get(ctx.guild.id)
@@ -154,7 +154,7 @@ def register(bot):
         player.voice = None
         await ctx.send('⏹️ Lecture arrêtée, bot déconnecté.')
 
-    @bot.hybrid_command(name='file', description='Voir la file d’attente de musique.')
+    @bot.command(name='file', help='Voir la file d’attente de musique.')
     @commands.guild_only()
     async def file_attente(ctx: commands.Context):
         player = players.get(ctx.guild.id)

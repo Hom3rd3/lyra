@@ -45,13 +45,15 @@ class LyraBot(commands.Bot):
                          allowed_mentions=discord.AllowedMentions.none(), help_command=None)
 
     async def setup_hook(self):
+        # Aucune commande slash : seul le préfixe texte ++ doit répondre.
+        # On efface toute commande slash publiée par une version précédente du bot.
         guild_id = os.getenv('GUILD_ID', '').strip()
         if guild_id:
             guild = discord.Object(id=int(guild_id))
-            self.tree.copy_global_to(guild=guild)
+            self.tree.clear_commands(guild=guild)
             await self.tree.sync(guild=guild)
-        else:
-            await self.tree.sync()
+        self.tree.clear_commands(guild=None)
+        await self.tree.sync()
 
     async def on_ready(self):
         log.info('Connecté : %s', self.user)
@@ -117,9 +119,8 @@ async def guard(ctx, member, timeout=False):
     return target
 
 
-@bot.hybrid_command(name='config', description='Configurer le journal et activer ou désactiver l’antispam.')
+@bot.command(name='config', help='Configurer le journal et activer ou désactiver l’antispam.')
 @commands.guild_only()
-@app_commands.default_permissions(manage_guild=True)
 @commands.has_permissions(manage_guild=True)
 async def config(ctx: commands.Context, journal: discord.TextChannel, antispam: bool = False):
     perms = journal.permissions_for(ctx.guild.me)
@@ -131,9 +132,8 @@ async def config(ctx: commands.Context, journal: discord.TextChannel, antispam: 
     await ctx.send(f'Journal : {journal.mention}. Antispam : {"activé" if antispam else "désactivé"}.', ephemeral=True)
 
 
-@bot.hybrid_command(name='kick', description='Expulser un membre.')
+@bot.command(name='kick', help='Expulser un membre.')
 @commands.guild_only()
-@app_commands.default_permissions(kick_members=True)
 @commands.has_permissions(kick_members=True)
 @commands.bot_has_permissions(kick_members=True)
 async def kick(ctx: commands.Context, membre: discord.Member, *, raison: app_commands.Range[str, 1, 400]):
@@ -144,9 +144,8 @@ async def kick(ctx: commands.Context, membre: discord.Member, *, raison: app_com
     await audit(ctx.guild, 'Expulsion', member.id, ctx.author.id, raison)
 
 
-@bot.hybrid_command(name='ban', description='Bannir un membre sans supprimer son historique de messages.')
+@bot.command(name='ban', help='Bannir un membre sans supprimer son historique de messages.')
 @commands.guild_only()
-@app_commands.default_permissions(ban_members=True)
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_permissions(ban_members=True)
 async def ban(ctx: commands.Context, membre: discord.Member, *, raison: app_commands.Range[str, 1, 400]):
@@ -157,9 +156,8 @@ async def ban(ctx: commands.Context, membre: discord.Member, *, raison: app_comm
     await audit(ctx.guild, 'Bannissement', member.id, ctx.author.id, raison)
 
 
-@bot.hybrid_command(name='unban', description='Débannir un utilisateur par son identifiant Discord.')
+@bot.command(name='unban', help='Débannir un utilisateur par son identifiant Discord.')
 @commands.guild_only()
-@app_commands.default_permissions(ban_members=True)
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_permissions(ban_members=True)
 async def unban(ctx: commands.Context, identifiant: str, *, raison: app_commands.Range[str, 1, 400]):
@@ -171,9 +169,8 @@ async def unban(ctx: commands.Context, identifiant: str, *, raison: app_commands
     await audit(ctx.guild, 'Débannissement', identifiant, ctx.author.id, raison)
 
 
-@bot.hybrid_command(name='timeout', description='Timeout en minutes (0 pour le retirer, maximum 28 jours).')
+@bot.command(name='timeout', help='Timeout en minutes (0 pour le retirer, maximum 28 jours).')
 @commands.guild_only()
-@app_commands.default_permissions(moderate_members=True)
 @commands.has_permissions(moderate_members=True)
 @commands.bot_has_permissions(moderate_members=True)
 async def timeout(ctx: commands.Context, membre: discord.Member, minutes: app_commands.Range[int, 0, 40320], *, raison: app_commands.Range[str, 1, 400]):
@@ -184,9 +181,8 @@ async def timeout(ctx: commands.Context, membre: discord.Member, minutes: app_co
     await audit(ctx.guild, 'Timeout', member.id, ctx.author.id, f'{minutes} min : {raison}')
 
 
-@bot.hybrid_command(name='clear', description='Supprimer jusqu’à 100 messages récents non épinglés.')
+@bot.command(name='clear', help='Supprimer jusqu’à 100 messages récents non épinglés.')
 @commands.guild_only()
-@app_commands.default_permissions(manage_messages=True)
 @commands.has_permissions(manage_messages=True)
 @commands.bot_has_permissions(manage_messages=True, read_message_history=True)
 async def clear(ctx: commands.Context, nombre: app_commands.Range[int, 1, 100]):
@@ -199,9 +195,8 @@ async def clear(ctx: commands.Context, nombre: app_commands.Range[int, 1, 100]):
     await audit(ctx.guild, 'Nettoyage', ctx.channel.id, ctx.author.id, f'{len(deleted)} messages supprimés')
 
 
-@bot.hybrid_command(name='warn', description='Ajouter un avertissement conservé en base locale.')
+@bot.command(name='warn', help='Ajouter un avertissement conservé en base locale.')
 @commands.guild_only()
-@app_commands.default_permissions(moderate_members=True)
 @commands.has_permissions(moderate_members=True)
 async def warn(ctx: commands.Context, membre: discord.Member, *, raison: app_commands.Range[str, 1, 400]):
     await ctx.defer(ephemeral=True)
@@ -212,9 +207,8 @@ async def warn(ctx: commands.Context, membre: discord.Member, *, raison: app_com
     await audit(ctx.guild, 'Avertissement', member.id, ctx.author.id, raison)
 
 
-@bot.hybrid_command(name='warnings', description='Afficher les 5 derniers avertissements d’un membre.')
+@bot.command(name='warnings', help='Afficher les 5 derniers avertissements d’un membre.')
 @commands.guild_only()
-@app_commands.default_permissions(moderate_members=True)
 @commands.has_permissions(moderate_members=True)
 async def warnings(ctx: commands.Context, membre: discord.Member):
     rows = db.execute('SELECT id,reason,created FROM warnings WHERE guild=? AND member=? ORDER BY id DESC LIMIT 5', (ctx.guild.id, membre.id)).fetchall()
@@ -222,9 +216,8 @@ async def warnings(ctx: commands.Context, membre: discord.Member):
     await ctx.send(texte, ephemeral=True)
 
 
-@bot.hybrid_command(name='delwarn', description='Supprimer un avertissement par son numéro.')
+@bot.command(name='delwarn', help='Supprimer un avertissement par son numéro.')
 @commands.guild_only()
-@app_commands.default_permissions(moderate_members=True)
 @commands.has_permissions(moderate_members=True)
 async def delwarn(ctx: commands.Context, numero: int):
     row = db.execute('SELECT member FROM warnings WHERE guild=? AND id=?', (ctx.guild.id, numero)).fetchone()
@@ -276,10 +269,10 @@ HELP_SECTIONS = [
 ]
 
 
-@bot.hybrid_command(name='help', aliases=['aide'], description='Afficher la liste des commandes.')
+@bot.command(name='help', aliases=['aide'], help='Afficher la liste des commandes.')
 async def help_command(ctx: commands.Context):
     embed = discord.Embed(title='📖 Commandes de Lyra Bot',
-                          description=f'Préfixe texte : `{PREFIX}` — les commandes slash `/` fonctionnent aussi.',
+                          description=f'Préfixe texte : `{PREFIX}` (ex. `{PREFIX}help`).',
                           color=0x5865F2)
     for titre, commandes in HELP_SECTIONS:
         valeur = '\n'.join(f'`{PREFIX}{nom}` — {desc}' for nom, desc in commandes)

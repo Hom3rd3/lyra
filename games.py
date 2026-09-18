@@ -58,7 +58,7 @@ class QuizView(discord.ui.View):
 
 
 def register(bot):
-    @bot.hybrid_command(name='pfc', description='Pierre-papier-ciseaux contre le bot.')
+    @bot.command(name='pfc', help='Pierre-papier-ciseaux contre le bot.')
     async def pfc(ctx: commands.Context, choix: Literal['pierre', 'papier', 'ciseaux']):
         bot_choice = random.choice(CHOICES)
         if choix == bot_choice:
@@ -69,7 +69,7 @@ def register(bot):
             resultat = 'Le bot gagne !'
         await ctx.send(f'Toi : **{choix}** — Bot : **{bot_choice}**\n{resultat}')
 
-    @bot.hybrid_command(name='pile', description='Pile ou face, avec pari facultatif.')
+    @bot.command(name='pile', help='Pile ou face, avec pari facultatif.')
     async def pile(ctx: commands.Context, pari: Optional[Literal['pile', 'face']] = None):
         resultat = random.choice(['pile', 'face'])
         texte = f'🪙 Résultat : **{resultat}**'
@@ -77,7 +77,7 @@ def register(bot):
             texte += ' — Gagné !' if pari == resultat else ' — Perdu.'
         await ctx.send(texte)
 
-    @bot.hybrid_command(name='deviner', description='Devine le nombre secret entre 1 et 20.')
+    @bot.command(name='deviner', help='Devine le nombre secret entre 1 et 20.')
     async def deviner(ctx: commands.Context, nombre: commands.Range[int, 1, 20]):
         secret = random.randint(1, 20)
         if nombre == secret:
@@ -86,7 +86,7 @@ def register(bot):
             indice = 'plus grand' if secret > nombre else 'plus petit'
             await ctx.send(f'❌ Perdu ! Le nombre était **{secret}** ({indice} que {nombre}).')
 
-    @bot.hybrid_command(name='quiz', description='Question de culture générale, premier à répondre gagne.')
+    @bot.command(name='quiz', help='Question de culture générale, premier à répondre gagne.')
     async def quiz(ctx: commands.Context):
         question, reponses, bonne = random.choice(QUESTIONS)
         view = QuizView(bonne)
