@@ -9,6 +9,7 @@ import discord
 from discord import app_commands
 from dotenv import load_dotenv
 
+import event_logs
 from core import SpamDetector, target_allowed
 
 ROOT = Path(__file__).resolve().parent
@@ -29,7 +30,10 @@ spam = SpamDetector()
 class LyraBot(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
-        # Counting messages does not need message content or member-list access.
+        # Logs détaillés (arrivées/départs, contenu des messages modifiés/supprimés) :
+        # active "Server Members Intent" et "Message Content Intent" dans le portail développeur.
+        intents.members = True
+        intents.message_content = True
         super().__init__(intents=intents, allowed_mentions=discord.AllowedMentions.none())
         self.tree = app_commands.CommandTree(self)
 
@@ -67,6 +71,7 @@ class LyraBot(discord.Client):
 
 
 bot = LyraBot()
+event_logs.register(bot)
 
 
 async def reply(interaction, text):
@@ -77,20 +82,22 @@ async def reply(interaction, text):
 
 
 async def audit(guild, action, target, moderator, reason):
-    row = db.execute('SELECT channel FROM config WHERE guild=?', (guild.id,)).fetchone()
-    if not row or not row[0]:
-        return
-    channel = guild.get_channel(row[0])
-    if not isinstance(channel, discord.TextChannel):
-        return
-    embed = discord.Embed(title=action, color=0x5865F2, timestamp=discord.utils.utcnow())
+    embed = discord.Embed(title=f'🛡️ {action}', color=0x5865F2, timestamp=discord.utils.utcnow())
     embed.add_field(name='Membre', value=str(target))
     embed.add_field(name='Modérateur', value=str(moderator))
     embed.add_field(name='Raison', value=reason[:1000], inline=False)
-    try:
-        await channel.send(embed=embed)
-    except discord.HTTPException:
-        log.warning('Action réussie, journal indisponible dans %s', guild.id)
+    embed.set_footer(text=f'{guild.name} • {guild.id}')
+
+    row = db.execute('SELECT channel FROM config WHERE guild=?', (guild.id,)).fetchone()
+    if row and row[0]:
+        channel = guild.get_channel(row[0])
+        if isinstance(channel, discord.TextChannel):
+            try:
+                await channel.send(embed=embed)
+            except discord.HTTPException:
+                log.warning('Action réussie, journal indisponible dans %s', guild.id)
+
+    await event_logs.send(bot, embed)
 
 
 async def guard(i, member, timeout=False):
