@@ -1,6 +1,6 @@
 # Lyra Bot — bot de modération Discord
 
-Bot Python en français, avec commandes slash et stockage SQLite local. Python 3.11 ou supérieur recommandé.
+Bot Python en français, avec commandes slash (`/`) et commandes texte (préfixe strict `++`), et stockage SQLite local. Python 3.11 ou supérieur recommandé. `++help` (ou `/help`) liste toutes les commandes.
 
 ## Installation
 
@@ -88,6 +88,15 @@ Le catalogue de cartes (16 cartes, 4 raretés) est défini dans `cards.py` — m
 | `/file` | Voir la musique en cours et la file d’attente |
 
 Le bot ne peut jouer que dans un seul salon vocal à la fois par serveur. La récupération dépend de YouTube via `yt-dlp` : une musique introuvable ou un échec d’extraction peuvent survenir après une mise à jour de YouTube, il faudra alors mettre à jour `yt-dlp` (`pip install -U yt-dlp`).
+
+### EA SPORTS FC 27
+
+| Commande | Fonction |
+| --- | --- |
+| `/fc27` | 5 dernières actus officielles (ea.com), triées par date |
+| `/sbc` | SBC (Squad Building Challenges) actifs, chacun avec son image |
+
+`/fc27` lit le site officiel ea.com. `/sbc` lit FUT.GG (site non officiel, non affilié à EA) faute d’API publique EA pour les SBC — un changement de mise en page de FUT.GG peut casser cette commande. Les deux mettent en cache leurs résultats 20 minutes pour éviter de solliciter ces sites à chaque appel.
 
 Les réponses aux commandes de modération sont privées pour le modérateur. Les actions du bot sont envoyées dans le journal configuré ; les actions manuelles des autres modérateurs ne sont pas reprises. Réserve l’accès au journal à ton équipe. Si le journal devient inaccessible, l’action reste effectuée et une alerte apparaît dans la console.
 

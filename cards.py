@@ -2,7 +2,7 @@ import random
 import time
 
 import discord
-from discord import app_commands
+from discord.ext import commands
 
 PACK_COST = 40
 DAILY_MIN, DAILY_MAX = 20, 40
@@ -126,77 +126,77 @@ class TradeView(discord.ui.View):
 def register(bot, db):
     setup_db(db)
 
-    @bot.tree.command(name='quotidien', description='Récupérer tes pièces quotidiennes.')
-    @app_commands.guild_only()
-    async def quotidien(i: discord.Interaction):
+    @bot.hybrid_command(name='quotidien', description='Récupérer tes pièces quotidiennes.')
+    @commands.guild_only()
+    async def quotidien(ctx: commands.Context):
         now = time.time()
-        last = get_last_daily(db, i.guild_id, i.user.id)
+        last = get_last_daily(db, ctx.guild.id, ctx.author.id)
         remaining = DAILY_COOLDOWN - (now - last)
         if remaining > 0:
             heures, minutes = int(remaining // 3600), int((remaining % 3600) // 60)
-            await i.response.send_message(f'⏳ Prochaine récompense dans {heures} h {minutes} min.', ephemeral=True)
+            await ctx.send(f'⏳ Prochaine récompense dans {heures} h {minutes} min.', ephemeral=True)
             return
         gain = random.randint(DAILY_MIN, DAILY_MAX)
-        add_coins(db, i.guild_id, i.user.id, gain, last_daily=now)
-        await i.response.send_message(f'💰 +{gain} pièces ! Solde : {get_balance(db, i.guild_id, i.user.id)}.')
+        add_coins(db, ctx.guild.id, ctx.author.id, gain, last_daily=now)
+        await ctx.send(f'💰 +{gain} pièces ! Solde : {get_balance(db, ctx.guild.id, ctx.author.id)}.')
 
-    @bot.tree.command(name='solde', description='Voir ton solde de pièces.')
-    @app_commands.guild_only()
-    async def solde(i: discord.Interaction):
-        await i.response.send_message(f'💰 Solde de {i.user.display_name} : {get_balance(db, i.guild_id, i.user.id)} pièces.')
+    @bot.hybrid_command(name='solde', description='Voir ton solde de pièces.')
+    @commands.guild_only()
+    async def solde(ctx: commands.Context):
+        await ctx.send(f'💰 Solde de {ctx.author.display_name} : {get_balance(db, ctx.guild.id, ctx.author.id)} pièces.')
 
-    @bot.tree.command(name='ouvrir', description=f'Ouvrir un paquet de cartes ({PACK_COST} pièces).')
-    @app_commands.guild_only()
-    async def ouvrir(i: discord.Interaction):
-        solde_actuel = get_balance(db, i.guild_id, i.user.id)
+    @bot.hybrid_command(name='ouvrir', description=f'Ouvrir un paquet de cartes ({PACK_COST} pièces).')
+    @commands.guild_only()
+    async def ouvrir(ctx: commands.Context):
+        solde_actuel = get_balance(db, ctx.guild.id, ctx.author.id)
         if solde_actuel < PACK_COST:
-            await i.response.send_message(
-                f'Il te faut {PACK_COST} pièces (tu en as {solde_actuel}). Utilise /quotidien pour en gagner.', ephemeral=True)
+            await ctx.send(
+                f'Il te faut {PACK_COST} pièces (tu en as {solde_actuel}). Utilise `++quotidien` pour en gagner.', ephemeral=True)
             return
-        add_coins(db, i.guild_id, i.user.id, -PACK_COST)
+        add_coins(db, ctx.guild.id, ctx.author.id, -PACK_COST)
         card_id = random.choices(POOL, weights=WEIGHTS)[0]
-        add_card(db, i.guild_id, i.user.id, card_id, 1)
+        add_card(db, ctx.guild.id, ctx.author.id, card_id, 1)
         card = CARDS_BY_ID[card_id]
         embed = discord.Embed(title=f"{card['emoji']} {card['nom']}", description=card['description'],
                               color=RARITY_COLORS[card['rarete']])
         embed.add_field(name='Rareté', value=card['rarete'])
         embed.add_field(name='Identifiant', value=f"`{card['id']}`")
-        embed.set_footer(text=f'Tiré par {i.user.display_name}')
-        await i.response.send_message(embed=embed)
+        embed.set_footer(text=f'Tiré par {ctx.author.display_name}')
+        await ctx.send(embed=embed)
 
-    @bot.tree.command(name='cartes', description='Voir une collection de cartes.')
-    @app_commands.guild_only()
-    async def cartes(i: discord.Interaction, membre: discord.Member = None):
-        cible = membre or i.user
+    @bot.hybrid_command(name='cartes', description='Voir une collection de cartes.')
+    @commands.guild_only()
+    async def cartes(ctx: commands.Context, membre: discord.Member = None):
+        cible = membre or ctx.author
         rows = db.execute(
             'SELECT card_id, count FROM collection WHERE guild=? AND member=? AND count>0 ORDER BY card_id',
-            (i.guild_id, cible.id)).fetchall()
+            (ctx.guild.id, cible.id)).fetchall()
         if not rows:
-            await i.response.send_message(f'{cible.display_name} n’a aucune carte. Utilise /ouvrir pour en obtenir.', ephemeral=True)
+            await ctx.send(f'{cible.display_name} n’a aucune carte. Utilise `++ouvrir` pour en obtenir.', ephemeral=True)
             return
         lignes = [f"{CARDS_BY_ID[cid]['emoji']} **{CARDS_BY_ID[cid]['nom']}** (`{cid}`, {CARDS_BY_ID[cid]['rarete']}) x{count}"
                   for cid, count in rows if cid in CARDS_BY_ID]
         embed = discord.Embed(title=f'Collection de {cible.display_name}', description='\n'.join(lignes)[:4000], color=0x5865F2)
-        await i.response.send_message(embed=embed)
+        await ctx.send(embed=embed)
 
-    @bot.tree.command(name='echanger', description='Proposer un échange de cartes avec un membre.')
-    @app_commands.guild_only()
-    async def echanger(i: discord.Interaction, membre: discord.Member, ma_carte: str, sa_carte: str):
-        if membre.id == i.user.id or membre.bot:
-            await i.response.send_message('Choisis un autre membre à qui proposer l’échange.', ephemeral=True)
+    @bot.hybrid_command(name='echanger', description='Proposer un échange de cartes avec un membre.')
+    @commands.guild_only()
+    async def echanger(ctx: commands.Context, membre: discord.Member, ma_carte: str, sa_carte: str):
+        if membre.id == ctx.author.id or membre.bot:
+            await ctx.send('Choisis un autre membre à qui proposer l’échange.', ephemeral=True)
             return
         if ma_carte not in CARDS_BY_ID or sa_carte not in CARDS_BY_ID:
-            await i.response.send_message('Identifiant de carte inconnu. Utilise /cartes pour voir les identifiants.', ephemeral=True)
+            await ctx.send('Identifiant de carte inconnu. Utilise `++cartes` pour voir les identifiants.', ephemeral=True)
             return
-        if get_card_count(db, i.guild_id, i.user.id, ma_carte) < 1:
-            await i.response.send_message('Tu ne possèdes pas cette carte.', ephemeral=True)
+        if get_card_count(db, ctx.guild.id, ctx.author.id, ma_carte) < 1:
+            await ctx.send('Tu ne possèdes pas cette carte.', ephemeral=True)
             return
-        if get_card_count(db, i.guild_id, membre.id, sa_carte) < 1:
-            await i.response.send_message(f'{membre.display_name} ne possède pas cette carte.', ephemeral=True)
+        if get_card_count(db, ctx.guild.id, membre.id, sa_carte) < 1:
+            await ctx.send(f'{membre.display_name} ne possède pas cette carte.', ephemeral=True)
             return
         embed = discord.Embed(title='🔄 Proposition d’échange', color=0xFEE75C)
-        embed.add_field(name=f'{i.user.display_name} offre', value=f"{CARDS_BY_ID[ma_carte]['emoji']} {CARDS_BY_ID[ma_carte]['nom']}")
+        embed.add_field(name=f'{ctx.author.display_name} offre', value=f"{CARDS_BY_ID[ma_carte]['emoji']} {CARDS_BY_ID[ma_carte]['nom']}")
         embed.add_field(name=f'{membre.display_name} offre', value=f"{CARDS_BY_ID[sa_carte]['emoji']} {CARDS_BY_ID[sa_carte]['nom']}")
-        view = TradeView(db, i.user, membre, ma_carte, sa_carte)
-        await i.response.send_message(content=membre.mention, embed=embed, view=view)
-        view.message = await i.original_response()
+        view = TradeView(db, ctx.author, membre, ma_carte, sa_carte)
+        message = await ctx.send(content=membre.mention, embed=embed, view=view)
+        view.message = message

@@ -1,7 +1,8 @@
 import random
+from typing import Literal, Optional
 
 import discord
-from discord import app_commands
+from discord.ext import commands
 
 CHOICES = ['pierre', 'papier', 'ciseaux']
 BEATS = {'pierre': 'ciseaux', 'papier': 'pierre', 'ciseaux': 'papier'}
@@ -57,44 +58,37 @@ class QuizView(discord.ui.View):
 
 
 def register(bot):
-    @bot.tree.command(name='pfc', description='Pierre-papier-ciseaux contre le bot.')
-    @app_commands.guild_only()
-    @app_commands.choices(choix=[app_commands.Choice(name=c, value=c) for c in CHOICES])
-    async def pfc(i: discord.Interaction, choix: app_commands.Choice[str]):
+    @bot.hybrid_command(name='pfc', description='Pierre-papier-ciseaux contre le bot.')
+    async def pfc(ctx: commands.Context, choix: Literal['pierre', 'papier', 'ciseaux']):
         bot_choice = random.choice(CHOICES)
-        joueur = choix.value
-        if joueur == bot_choice:
+        if choix == bot_choice:
             resultat = 'Égalité !'
-        elif BEATS[joueur] == bot_choice:
-            resultat = f'{i.user.mention} gagne !'
+        elif BEATS[choix] == bot_choice:
+            resultat = f'{ctx.author.mention} gagne !'
         else:
             resultat = 'Le bot gagne !'
-        await i.response.send_message(f'Toi : **{joueur}** — Bot : **{bot_choice}**\n{resultat}')
+        await ctx.send(f'Toi : **{choix}** — Bot : **{bot_choice}**\n{resultat}')
 
-    @bot.tree.command(name='pile', description='Pile ou face, avec pari facultatif.')
-    @app_commands.guild_only()
-    @app_commands.choices(pari=[app_commands.Choice(name='pile', value='pile'), app_commands.Choice(name='face', value='face')])
-    async def pile(i: discord.Interaction, pari: app_commands.Choice[str] = None):
+    @bot.hybrid_command(name='pile', description='Pile ou face, avec pari facultatif.')
+    async def pile(ctx: commands.Context, pari: Optional[Literal['pile', 'face']] = None):
         resultat = random.choice(['pile', 'face'])
         texte = f'🪙 Résultat : **{resultat}**'
         if pari:
-            texte += ' — Gagné !' if pari.value == resultat else ' — Perdu.'
-        await i.response.send_message(texte)
+            texte += ' — Gagné !' if pari == resultat else ' — Perdu.'
+        await ctx.send(texte)
 
-    @bot.tree.command(name='deviner', description='Devine le nombre secret entre 1 et 20.')
-    @app_commands.guild_only()
-    async def deviner(i: discord.Interaction, nombre: app_commands.Range[int, 1, 20]):
+    @bot.hybrid_command(name='deviner', description='Devine le nombre secret entre 1 et 20.')
+    async def deviner(ctx: commands.Context, nombre: commands.Range[int, 1, 20]):
         secret = random.randint(1, 20)
         if nombre == secret:
-            await i.response.send_message(f'🎯 Le nombre était **{secret}** — Bravo, tu as trouvé !')
+            await ctx.send(f'🎯 Le nombre était **{secret}** — Bravo, tu as trouvé !')
         else:
             indice = 'plus grand' if secret > nombre else 'plus petit'
-            await i.response.send_message(f'❌ Perdu ! Le nombre était **{secret}** ({indice} que {nombre}).')
+            await ctx.send(f'❌ Perdu ! Le nombre était **{secret}** ({indice} que {nombre}).')
 
-    @bot.tree.command(name='quiz', description='Question de culture générale, premier à répondre gagne.')
-    @app_commands.guild_only()
-    async def quiz(i: discord.Interaction):
+    @bot.hybrid_command(name='quiz', description='Question de culture générale, premier à répondre gagne.')
+    async def quiz(ctx: commands.Context):
         question, reponses, bonne = random.choice(QUESTIONS)
         view = QuizView(bonne)
         texte = question + '\n' + '\n'.join(f'{l} — {r}' for l, r in zip(LETTERS, reponses))
-        await i.response.send_message(texte, view=view)
+        await ctx.send(texte, view=view)

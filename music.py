@@ -4,7 +4,7 @@ from collections import deque
 
 import discord
 import yt_dlp
-from discord import app_commands
+from discord.ext import commands
 
 log = logging.getLogger('lyra_bot.music')
 
@@ -78,92 +78,92 @@ def register(bot):
             log.warning('Lecture impossible pour %s', guild_id, exc_info=True)
             await play_next(guild_id)
 
-    @bot.tree.command(name='jouer', description='Jouer une musique depuis YouTube (recherche ou lien).')
-    @app_commands.guild_only()
-    async def jouer(i: discord.Interaction, recherche: str):
-        if not isinstance(i.user, discord.Member) or not i.user.voice or not i.user.voice.channel:
-            await i.response.send_message('Rejoins un salon vocal avant d’utiliser cette commande.', ephemeral=True)
+    @bot.hybrid_command(name='jouer', description='Jouer une musique depuis YouTube (recherche ou lien).')
+    @commands.guild_only()
+    async def jouer(ctx: commands.Context, *, recherche: str):
+        if not isinstance(ctx.author, discord.Member) or not ctx.author.voice or not ctx.author.voice.channel:
+            await ctx.send('Rejoins un salon vocal avant d’utiliser cette commande.', ephemeral=True)
             return
-        await i.response.defer()
-        player = get_player(i.guild_id)
-        channel = i.user.voice.channel
+        await ctx.defer()
+        player = get_player(ctx.guild.id)
+        channel = ctx.author.voice.channel
         if player.voice and player.voice.is_connected() and player.voice.channel != channel:
-            await i.followup.send('Le bot est déjà en train de jouer dans un autre salon vocal.')
+            await ctx.send('Le bot est déjà en train de jouer dans un autre salon vocal.')
             return
         if not player.voice or not player.voice.is_connected():
             try:
                 player.voice = await channel.connect()
             except discord.ClientException:
-                await i.followup.send('Impossible de rejoindre ce salon vocal.')
+                await ctx.send('Impossible de rejoindre ce salon vocal.')
                 return
         try:
             info = await extract(recherche)
         except Exception:
             log.warning('Extraction yt-dlp échouée pour %r', recherche, exc_info=True)
-            await i.followup.send('Impossible de récupérer cette musique (lien invalide ou indisponible).')
+            await ctx.send('Impossible de récupérer cette musique (lien invalide ou indisponible).')
             return
-        track = Track(info['url'], info.get('title', 'Inconnu'), info.get('webpage_url', ''), i.user)
+        track = Track(info['url'], info.get('title', 'Inconnu'), info.get('webpage_url', ''), ctx.author)
         player.queue.append(track)
         if not player.voice.is_playing() and not player.voice.is_paused():
-            await play_next(i.guild_id)
-            await i.followup.send(f'▶️ Lecture : **{track.title}**')
+            await play_next(ctx.guild.id)
+            await ctx.send(f'▶️ Lecture : **{track.title}**')
         else:
-            await i.followup.send(f'➕ Ajouté à la file : **{track.title}** (position {len(player.queue)})')
+            await ctx.send(f'➕ Ajouté à la file : **{track.title}** (position {len(player.queue)})')
 
-    @bot.tree.command(name='pause', description='Mettre la lecture en pause.')
-    @app_commands.guild_only()
-    async def pause(i: discord.Interaction):
-        player = players.get(i.guild_id)
+    @bot.hybrid_command(name='pause', description='Mettre la lecture en pause.')
+    @commands.guild_only()
+    async def pause(ctx: commands.Context):
+        player = players.get(ctx.guild.id)
         if not player or not player.voice or not player.voice.is_playing():
-            await i.response.send_message('Rien n’est en cours de lecture.', ephemeral=True)
+            await ctx.send('Rien n’est en cours de lecture.', ephemeral=True)
             return
         player.voice.pause()
-        await i.response.send_message('⏸️ Pause.')
+        await ctx.send('⏸️ Pause.')
 
-    @bot.tree.command(name='reprendre', description='Reprendre la lecture après une pause.')
-    @app_commands.guild_only()
-    async def reprendre(i: discord.Interaction):
-        player = players.get(i.guild_id)
+    @bot.hybrid_command(name='reprendre', description='Reprendre la lecture après une pause.')
+    @commands.guild_only()
+    async def reprendre(ctx: commands.Context):
+        player = players.get(ctx.guild.id)
         if not player or not player.voice or not player.voice.is_paused():
-            await i.response.send_message('Rien n’est en pause.', ephemeral=True)
+            await ctx.send('Rien n’est en pause.', ephemeral=True)
             return
         player.voice.resume()
-        await i.response.send_message('▶️ Reprise.')
+        await ctx.send('▶️ Reprise.')
 
-    @bot.tree.command(name='suivant', description='Passer à la musique suivante de la file.')
-    @app_commands.guild_only()
-    async def suivant(i: discord.Interaction):
-        player = players.get(i.guild_id)
+    @bot.hybrid_command(name='suivant', description='Passer à la musique suivante de la file.')
+    @commands.guild_only()
+    async def suivant(ctx: commands.Context):
+        player = players.get(ctx.guild.id)
         if not player or not player.voice or not (player.voice.is_playing() or player.voice.is_paused()):
-            await i.response.send_message('Rien n’est en cours de lecture.', ephemeral=True)
+            await ctx.send('Rien n’est en cours de lecture.', ephemeral=True)
             return
         player.voice.stop()
-        await i.response.send_message('⏭️ Musique suivante.')
+        await ctx.send('⏭️ Musique suivante.')
 
-    @bot.tree.command(name='stop', description='Arrêter la lecture, vider la file et quitter le vocal.')
-    @app_commands.guild_only()
-    async def stop(i: discord.Interaction):
-        player = players.get(i.guild_id)
+    @bot.hybrid_command(name='stop', description='Arrêter la lecture, vider la file et quitter le vocal.')
+    @commands.guild_only()
+    async def stop(ctx: commands.Context):
+        player = players.get(ctx.guild.id)
         if not player or not player.voice:
-            await i.response.send_message('Le bot n’est pas connecté à un salon vocal.', ephemeral=True)
+            await ctx.send('Le bot n’est pas connecté à un salon vocal.', ephemeral=True)
             return
         player.queue.clear()
         player.current = None
         if player.voice.is_connected():
             await player.voice.disconnect()
         player.voice = None
-        await i.response.send_message('⏹️ Lecture arrêtée, bot déconnecté.')
+        await ctx.send('⏹️ Lecture arrêtée, bot déconnecté.')
 
-    @bot.tree.command(name='file', description='Voir la file d’attente de musique.')
-    @app_commands.guild_only()
-    async def file_attente(i: discord.Interaction):
-        player = players.get(i.guild_id)
+    @bot.hybrid_command(name='file', description='Voir la file d’attente de musique.')
+    @commands.guild_only()
+    async def file_attente(ctx: commands.Context):
+        player = players.get(ctx.guild.id)
         if not player or (not player.current and not player.queue):
-            await i.response.send_message('La file est vide.', ephemeral=True)
+            await ctx.send('La file est vide.', ephemeral=True)
             return
         lignes = []
         if player.current:
             lignes.append(f'▶️ **{player.current.title}** (en cours, demandé par {player.current.requester.display_name})')
         for idx, t in enumerate(player.queue, start=1):
             lignes.append(f'{idx}. {t.title} — demandé par {t.requester.display_name}')
-        await i.response.send_message('\n'.join(lignes)[:2000])
+        await ctx.send('\n'.join(lignes)[:2000])
