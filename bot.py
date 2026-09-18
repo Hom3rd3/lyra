@@ -6,7 +6,6 @@ from datetime import timedelta
 from pathlib import Path
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -136,7 +135,7 @@ async def config(ctx: commands.Context, journal: discord.TextChannel, antispam: 
 @commands.guild_only()
 @commands.has_permissions(kick_members=True)
 @commands.bot_has_permissions(kick_members=True)
-async def kick(ctx: commands.Context, membre: discord.Member, *, raison: app_commands.Range[str, 1, 400]):
+async def kick(ctx: commands.Context, membre: discord.Member, *, raison: commands.Range[str, 1, 400]):
     await ctx.defer(ephemeral=True)
     member = await guard(ctx, membre)
     await member.kick(reason=f'{ctx.author.id} : {raison}')
@@ -148,7 +147,7 @@ async def kick(ctx: commands.Context, membre: discord.Member, *, raison: app_com
 @commands.guild_only()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_permissions(ban_members=True)
-async def ban(ctx: commands.Context, membre: discord.Member, *, raison: app_commands.Range[str, 1, 400]):
+async def ban(ctx: commands.Context, membre: discord.Member, *, raison: commands.Range[str, 1, 400]):
     await ctx.defer(ephemeral=True)
     member = await guard(ctx, membre)
     await member.ban(reason=f'{ctx.author.id} : {raison}', delete_message_seconds=0)
@@ -160,7 +159,7 @@ async def ban(ctx: commands.Context, membre: discord.Member, *, raison: app_comm
 @commands.guild_only()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_permissions(ban_members=True)
-async def unban(ctx: commands.Context, identifiant: str, *, raison: app_commands.Range[str, 1, 400]):
+async def unban(ctx: commands.Context, identifiant: str, *, raison: commands.Range[str, 1, 400]):
     if not identifiant.isdecimal() or not 1 <= int(identifiant) < 2**64:
         raise commands.CheckFailure('Identifiant Discord invalide.')
     await ctx.defer(ephemeral=True)
@@ -173,7 +172,7 @@ async def unban(ctx: commands.Context, identifiant: str, *, raison: app_commands
 @commands.guild_only()
 @commands.has_permissions(moderate_members=True)
 @commands.bot_has_permissions(moderate_members=True)
-async def timeout(ctx: commands.Context, membre: discord.Member, minutes: app_commands.Range[int, 0, 40320], *, raison: app_commands.Range[str, 1, 400]):
+async def timeout(ctx: commands.Context, membre: discord.Member, minutes: commands.Range[int, 0, 40320], *, raison: commands.Range[str, 1, 400]):
     await ctx.defer(ephemeral=True)
     member = await guard(ctx, membre, timeout=True)
     await member.timeout(timedelta(minutes=minutes) if minutes else None, reason=f'{ctx.author.id} : {raison}')
@@ -185,7 +184,7 @@ async def timeout(ctx: commands.Context, membre: discord.Member, minutes: app_co
 @commands.guild_only()
 @commands.has_permissions(manage_messages=True)
 @commands.bot_has_permissions(manage_messages=True, read_message_history=True)
-async def clear(ctx: commands.Context, nombre: app_commands.Range[int, 1, 100]):
+async def clear(ctx: commands.Context, nombre: commands.Range[int, 1, 100]):
     if not isinstance(ctx.channel, (discord.TextChannel, discord.Thread)):
         raise commands.CheckFailure('Utilise cette commande dans un salon textuel.')
     await ctx.defer(ephemeral=True)
@@ -198,7 +197,7 @@ async def clear(ctx: commands.Context, nombre: app_commands.Range[int, 1, 100]):
 @bot.command(name='warn', help='Ajouter un avertissement conservé en base locale.')
 @commands.guild_only()
 @commands.has_permissions(moderate_members=True)
-async def warn(ctx: commands.Context, membre: discord.Member, *, raison: app_commands.Range[str, 1, 400]):
+async def warn(ctx: commands.Context, membre: discord.Member, *, raison: commands.Range[str, 1, 400]):
     await ctx.defer(ephemeral=True)
     member = await guard(ctx, membre)
     cursor = db.execute('INSERT INTO warnings(guild,member,moderator,reason) VALUES (?,?,?,?)', (ctx.guild.id, member.id, ctx.author.id, raison))
